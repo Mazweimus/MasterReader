@@ -11,7 +11,7 @@ int main(void) {
     char dir[1024];
     fgets(dir, sizeof(dir), stdin);
     dir[strlen(dir) - 1] = '\0';
-    HANDLE file = CreateFileA(dir, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    HANDLE file = FindFirstChangeNotificationA(dir, TRUE, FILE_NOTIFY_CHANGE_FILE_NAME);
     if (file == INVALID_HANDLE_VALUE){
         DWORD error = GetLastError();
         if (error == ERROR_FILE_NOT_FOUND){}
