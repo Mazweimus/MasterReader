@@ -14,11 +14,15 @@ int main(void) {
     HANDLE file = FindFirstChangeNotificationA(dir, TRUE, FILE_NOTIFY_CHANGE_FILE_NAME);
     if (file == INVALID_HANDLE_VALUE){
         DWORD error = GetLastError();
-        if (error == ERROR_FILE_NOT_FOUND){}
         return error;
     }
-    printf("Ahoj jde to celkem");
-
-
+    printf("Iniciace %s byla uspesne udelana\n", dir);
+    while (true){
+        DWORD hitter = WaitForSingleObject(file, INFINITE);
+        if (hitter == WAIT_OBJECT_0) {
+            printf("The hitter was hitted\n");
+            FindNextChangeNotification(file);
+        }
+    }
     return 0;
 }
