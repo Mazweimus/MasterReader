@@ -17,18 +17,16 @@ int main(void) {
     printf("Enter a directory to be watched\n");
     fgets(dir, sizeof(dir), stdin);
     dir[strlen(dir) - 1] = '\0';
-    HANDLE openDirectory = CreateFileW(dir, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    // HANDLE file = FindFirstChangeNotificationA(dir, TRUE, FILE_NOTIFY_CHANGE_FILE_NAME); //Create a handler to change the specific part of it
-    BOOL directoryChanges = ReadDirectoryChanges(file, );
-    
-    printf("Iniciace %s byla uspesne udelana\n", dir);
-    while (true){
-        DWORD hitter = WaitForSingleObject(file, INFINITE);
-        if (hitter == WAIT_OBJECT_0) {
-            printf("The hitter was hitted\n");
-            printf("%s byl nalezen\n", file);
-            FindNextChangeNotification(file);
+    HANDLE openDirectory = CreateFileW(dir, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, NULL);
+    LPVOID buffer[4096];
+    LPVOID *lpBuffer = &buffer;
+    DWORD dwBufferReturn = 0;
+    while (true) {
+        BOOL directoryChanges = ReadDirectoryChangesW(openDirectory, buffer, sizeof(lpBuffer), TRUE, FILE_NOTIFY_CHANGE_LAST_WRITE, &dwBufferReturn, NULL, NULL);
+        if (directoryChanges == 0) {
+            printf("Nezdarilo se");
+        } else {
+            printf("Neco se znemnio");
         }
     }
-    return 0;
 }
