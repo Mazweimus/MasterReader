@@ -29,24 +29,37 @@ int main(void) {
     DWORD dwBufferReturn = 0;
     OVERLAPPED ov = {0};
     ov.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL); // manual reset event
-    ReadDirectoryChangesW(openDirectory, buffer, sizeof(buffer), TRUE, FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_SIZE | FILE_NOTIFY_CHANGE_CREATION, &dwBufferReturn, &ov, NULL);
+    ReadDirectoryChangesW(openDirectory, buffer, sizeof(buffer), TRUE, FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_SIZE | FILE_NOTIFY_CHANGE_CREATION | FILE_NOTIFY_CHANGE_ATTRIBUTES | FILE_NOTIFY_CHANGE_CREATION, &dwBufferReturn, &ov, NULL);
     while (true) {
-        ResetEvent(ov.hEvent);
         printf("We are seeking for any changes\n");
         DWORD wait = WaitForSingleObject(ov.hEvent, INFINITE);
         if (wait == WAIT_OBJECT_0) {
             GetOverlappedResult(openDirectory, &ov, &dwBufferReturn, TRUE);
+            ResetEvent(ov.hEvent);
             FILE_NOTIFY_INFORMATION *fni = (FILE_NOTIFY_INFORMATION *)buffer;
-            if (fni->Action == FILE_ACTION_ADDED) {
-                printf("Added file\n");
-            } else if (fni->Action == FILE_ACTION_REMOVED) {
-                printf("File removed\n");
-            } else if (fni->Action == FILE_ACTION_RENAMED_NEW_NAME) {
-                printf("Name renamed\n");
-            } else if (fni->Action == FILE_ACTION_MODIFIED) {
-                printf("Change was spotted\n");
-            }
+            do {
+                int fileNameLen = fni->FileNameLength / sizeof(WCHAR);
+                if (fni->Action == FILE_ACTION_ADDED) {
+                    wprintf(L"Added file: %.*ls\n", fileNameLen, fni->FileName);
+                } else if (fni->Action == FILE_ACTION_REMOVED) {
+                    wprintf(L"File removed: %.*ls\n", fileNameLen, fni->FileName);
+                } else if (fni->Action == FILE_ACTION_MODIFIED) {
+                    wprintf(L"Change was spotted: %.*ls\n", fileNameLen, fni->FileName);
+                } else if (fni->Action == FILE_ACTION_RENAMED_OLD_NAME) {
+                    wprintf(L"File renamed (old name): %.*ls\n", fileNameLen, fni->FileName);
+                } else if (fni->Action == FILE_ACTION_RENAMED_NEW_NAME) {
+                    wprintf(L"File renamed (new name): %.*ls\n", fileNameLen, fni->FileName);
+                }
+                if (fni->NextEntryOffset == 0) {
+                    break;
+                }
+                fni = (FILE_NOTIFY_INFORMATION *)((BYTE *)fni + fni->NextEntryOffset);
+            } while (true);
+
+            ReadDirectoryChangesW(openDirectory, buffer, sizeof(buffer), TRUE,
+                FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_FILE_NAME |
+                FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_SIZE |
+                FILE_NOTIFY_CHANGE_CREATION, &dwBufferReturn, &ov, NULL);
         }
-        ReadDirectoryChangesW(openDirectory, buffer, sizeof(buffer), TRUE, FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_SIZE | FILE_NOTIFY_CHANGE_CREATION, &dwBufferReturn, &ov, NULL);
     }
 }
